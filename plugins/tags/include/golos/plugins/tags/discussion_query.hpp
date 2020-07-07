@@ -50,6 +50,7 @@ namespace golos { namespace plugins { namespace tags {
         fc::optional<std::string>         start_permlink; ///< the permlink of discussion to start searching from
         fc::optional<std::string>         parent_author; ///< the author of parent discussion
         fc::optional<std::string>         parent_permlink; ///< the permlink of parent discussion
+        bool                              reversed = false;
 
         discussion                        start_comment;
         discussion                        parent_comment;
@@ -113,7 +114,7 @@ namespace golos { namespace plugins { namespace tags {
 FC_REFLECT((golos::plugins::tags::discussion_query),
         (select_tags)(filter_tags)(select_categories)(select_authors)(truncate_body)(vote_limit)(vote_offset)
         (start_author)(start_permlink)(parent_author)
-        (parent_permlink)(limit)(select_languages)(filter_languages)
+        (parent_permlink)(limit)(select_languages)(filter_languages)(reversed)
 );
 
 #endif //GOLOS_DISCUSSION_QUERY_H

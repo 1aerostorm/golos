@@ -12,8 +12,22 @@ namespace golos { namespace plugins { namespace tags { namespace sort {
     using protocol::account_name_type;
     using protocol::public_key_type;
     
-    struct by_trending {
+    struct tags_sort {
+        bool reversed;
+        tags_sort(bool r = false) : reversed(r) {}
+
+        virtual bool compare(const discussion& first, const discussion& second) const = 0;
+
         bool operator()(const discussion& first, const discussion& second) const {
+            bool res = compare(first, second);
+            return reversed ? (!res) : res;
+        }
+    };
+
+    struct by_trending : tags_sort {
+        by_trending(bool r = false) : tags_sort(r) {}
+
+        bool compare(const discussion& first, const discussion& second) const {
             if (std::greater<double>()(first.trending, second.trending)) {
                 return true;
             } else if (std::greater<double>()(second.trending, first.trending)) {
@@ -23,8 +37,10 @@ namespace golos { namespace plugins { namespace tags { namespace sort {
         }
     };
 
-    struct by_promoted {
-        bool operator()(const discussion& first, const discussion& second) const {
+    struct by_promoted : tags_sort {
+        by_promoted(bool r = false) : tags_sort(r) {}
+
+        bool compare(const discussion& first, const discussion& second) const {
             if (!first.promoted) {
                 return false;
             }
@@ -37,8 +53,10 @@ namespace golos { namespace plugins { namespace tags { namespace sort {
         }
     };
 
-    struct by_created {
-        bool operator()(const discussion& first, const discussion& second) const {
+    struct by_created : tags_sort {
+        by_created(bool r = false) : tags_sort(r) {}
+
+        bool compare(const discussion& first, const discussion& second) const {
             if (std::greater<time_point_sec>()(first.created, second.created)) {
                 return true;
             } else if (std::equal_to<time_point_sec>()(first.created, second.created)) {
@@ -48,8 +66,10 @@ namespace golos { namespace plugins { namespace tags { namespace sort {
         }
     };
 
-    struct by_active {
-        bool operator()(const discussion& first, const discussion& second) const {
+    struct by_active : tags_sort {
+        by_active(bool r = false) : tags_sort(r) {}
+
+        bool compare(const discussion& first, const discussion& second) const {
             if (!first.active.valid() || !second.active.valid()) {
                 return false;
             }
@@ -62,8 +82,10 @@ namespace golos { namespace plugins { namespace tags { namespace sort {
         }
     };
 
-    struct by_updated {
-        bool operator()(const discussion& first, const discussion& second) const {
+    struct by_updated : tags_sort {
+        by_updated(bool r = false) : tags_sort(r) {}
+
+        bool compare(const discussion& first, const discussion& second) const {
             if (!first.last_update.valid() || !second.last_update.valid()) {
                 return false;
             }
@@ -76,8 +98,10 @@ namespace golos { namespace plugins { namespace tags { namespace sort {
         }
     };
 
-    struct by_cashout {
-        bool operator()(const discussion& first, const discussion& second) const {
+    struct by_cashout : tags_sort {
+        by_cashout(bool r = false) : tags_sort(r) {}
+
+        bool compare(const discussion& first, const discussion& second) const {
             if (std::less<time_point_sec>()(first.cashout_time, second.cashout_time)) {
                 return true;
             } else if (std::equal_to<time_point_sec>()(first.cashout_time, second.cashout_time)) {
@@ -87,8 +111,10 @@ namespace golos { namespace plugins { namespace tags { namespace sort {
         }
     };
 
-    struct by_net_rshares {
-        bool operator()(const discussion& first, const discussion& second) const {
+    struct by_net_rshares : tags_sort {
+        by_net_rshares(bool r = false) : tags_sort(r) {}
+
+        bool compare(const discussion& first, const discussion& second) const {
             if (std::greater<share_type>()(first.net_rshares, second.net_rshares)) {
                 return true;
             } else if (std::equal_to<share_type>()(first.net_rshares, second.net_rshares)) {
@@ -98,8 +124,10 @@ namespace golos { namespace plugins { namespace tags { namespace sort {
         }
     };
 
-    struct by_net_votes {
-        bool operator()(const discussion& first, const discussion& second) const {
+    struct by_net_votes : tags_sort {
+        by_net_votes(bool r = false) : tags_sort(r) {}
+
+        bool compare(const discussion& first, const discussion& second) const {
             if (std::greater<int32_t>()(first.net_votes, second.net_votes)) {
                 return true;
             } else if (std::equal_to<int32_t>()(first.net_votes, second.net_votes)) {
@@ -109,8 +137,10 @@ namespace golos { namespace plugins { namespace tags { namespace sort {
         }
     };
 
-    struct by_children {
-        bool operator()(const discussion& first, const discussion& second) const {
+    struct by_children : tags_sort {
+        by_children(bool r = false) : tags_sort(r) {}
+
+        bool compare(const discussion& first, const discussion& second) const {
             if (std::greater<int32_t>()(first.children, second.children)) {
                 return true;
             } else if (std::equal_to<int32_t>()(first.children, second.children)) {
@@ -120,8 +150,10 @@ namespace golos { namespace plugins { namespace tags { namespace sort {
         }
     };
 
-    struct by_hot {
-        bool operator()(const discussion& first, const discussion& second) const {
+    struct by_hot : tags_sort {
+        by_hot(bool r = false) : tags_sort(r) {}
+
+        bool compare(const discussion& first, const discussion& second) const {
             if (std::greater<double>()(first.hot, second.hot)) {
                 return true;
             } else if (std::greater<double>()(second.hot, first.hot)) {
@@ -131,8 +163,10 @@ namespace golos { namespace plugins { namespace tags { namespace sort {
         }
     };
 
-    struct by_donates {
-        bool operator()(const discussion& first, const discussion& second) const {
+    struct by_donates : tags_sort {
+        by_donates(bool r = false) : tags_sort(r) {}
+
+        bool compare(const discussion& first, const discussion& second) const {
             if (std::greater<asset>()(first.donates, second.donates)) {
                 return true;
             } else if (std::equal_to<asset>()(first.donates, second.donates)) {

@@ -438,50 +438,77 @@ namespace golos { namespace plugins { namespace tags {
             std::set<comment_object::id_type> id_set;
             if (query.has_tags_selector()) { // seems to have a least complexity
                 const auto& idx = db.get_index<tags::tag_index>().indices().get<tags::by_tag>();
-                auto etr = idx.end();
+                auto itr_end = idx.end();
+                auto ritr_end = idx.rend();
+
                 unordered.reserve(query.select_tags.size() * query.limit);
 
                 for (auto& name: query.select_tags) {
-                    select_discussions(
-                        id_set, unordered, query, idx.lower_bound(std::make_tuple(name, tags::tag_type::tag)), etr,
-                        selector,
-                        [&](const tags::tag_object& tag){
-                            return tag.name != name || tag.type != tags::tag_type::tag;
-                        },
-                        DiscussionOrder());
+                    auto itr = idx.lower_bound(std::make_tuple(name, tags::tag_type::tag));
+
+                    auto exit = [&](const auto& tag){
+                        return tag.name != name || tag.type != tags::tag_type::tag;
+                    };
+
+                    if (query.reversed) {
+                        select_discussions(id_set, unordered, query,
+                            boost::make_reverse_iterator(itr), ritr_end, selector, exit, DiscussionOrder(true));
+                    } else {
+                        select_discussions(id_set, unordered, query,
+                            itr, itr_end, selector, exit, DiscussionOrder());
+                    }
                 }
             } else if (query.has_author_selector()) { // a more complexity
                 const auto& idx = db.get_index<tags::tag_index>().indices().get<tags::by_author_comment>();
-                auto etr = idx.end();
+                auto itr_end = idx.end();
+                auto ritr_end = idx.rend();
+
                 unordered.reserve(query.select_author_ids.size() * query.limit);
 
                 for (auto& id: query.select_author_ids) {
-                    select_discussions(
-                        id_set, unordered, query, idx.lower_bound(id), etr,
-                        selector,
-                        [&](const tags::tag_object& tag){
-                            return tag.author != id;
-                        },
-                        DiscussionOrder());
+                    auto itr = idx.lower_bound(id);
+
+                    auto exit = [&](const auto& tag){
+                        return tag.author != id;
+                    };
+
+                    if (query.reversed) {
+                        select_discussions(id_set, unordered, query,
+                            boost::make_reverse_iterator(itr), ritr_end, selector, exit, DiscussionOrder(true));
+                    } else {
+                        select_discussions(id_set, unordered, query,
+                            itr, itr_end, selector, exit, DiscussionOrder());
+                    }
                 }
             } else if (query.has_language_selector()) { // the most complexity
                 const auto& idx = db.get_index<tags::tag_index>().indices().get<tags::by_tag>();
-                auto etr = idx.end();
+                auto itr_end = idx.end();
+                auto ritr_end = idx.rend();
+
                 unordered.reserve(query.select_languages.size() * query.limit);
 
                 for (auto& name: query.select_languages) {
-                    select_discussions(
-                        id_set, unordered, query, idx.lower_bound(std::make_tuple(name, tags::tag_type::language)), etr,
-                        selector,
-                        [&](const tags::tag_object& tag){
-                            return tag.name != name || tag.type != tags::tag_type::language;
-                        },
-                        DiscussionOrder());
+                    auto itr = idx.lower_bound(std::make_tuple(name, tags::tag_type::language));
+
+                    auto exit = [&](const auto& tag){
+                        return tag.name != name || tag.type != tags::tag_type::language;
+                    };
+
+                    if (query.reversed) {
+                        select_discussions(id_set, unordered, query,
+                            boost::make_reverse_iterator(itr), ritr_end, selector, exit, DiscussionOrder(true));
+                    } else {
+                        select_discussions(id_set, unordered, query,
+                            itr, itr_end, selector, exit, DiscussionOrder());
+                    }
                 }
             } else {
                 const auto& indices = db.get_index<tags::tag_index>().indices();
                 const auto& idx = indices.get<DiscussionOrder>();
                 auto itr = idx.begin();
+                if (query.reversed) {
+                    itr = idx.end();
+                }
 
                 if (query.has_start_comment()) {
                     const auto& cidx = indices.get<tags::by_comment>();
@@ -491,18 +518,29 @@ namespace golos { namespace plugins { namespace tags {
                     }
                     query.reset_start_comment();
                     itr = idx.iterator_to(*citr);
+                    if (query.reversed) {
+                        ++itr;
+                    }
                 }
 
                 unordered.reserve(query.limit);
 
-                select_discussions(
-                    id_set, unordered, query, itr, idx.end(), selector,
-                    [&](const tags::tag_object& tag){
-                        return unordered.size() >= query.limit;
-                    },
-                    [&](const auto&, const auto&) {
-                        return true;
-                    });
+                auto exit = [&](const tags::tag_object& tag){
+                    return unordered.size() >= query.limit;
+                };
+                auto order = [&](const auto&, const auto&) {
+                    return true;
+                };
+                wlog(std::to_string(query.reversed));
+                if (query.reversed) {
+                    select_discussions(id_set, unordered, query,
+                        boost::make_reverse_iterator(itr), idx.rend(),
+                        selector, exit, order);
+                } else {
+                    select_discussions(id_set, unordered, query,
+                        itr, idx.end(),
+                        selector, exit, order);
+                }
             }
             return true;
         });
@@ -514,7 +552,7 @@ namespace golos { namespace plugins { namespace tags {
 
         auto it = unordered.begin();
         const auto et = unordered.end();
-        std::sort(it, et, DiscussionOrder());
+        std::sort(it, et, DiscussionOrder(query.reversed));
 
         if (query.has_start_comment()) {
             for (; et != it && it->id != query.start_comment.id; ++it);
